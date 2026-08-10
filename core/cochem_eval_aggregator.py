@@ -8,6 +8,7 @@ import sys
 import ast
 import json
 import hashlib
+import subprocess
 from pathlib import Path
 from typing import Tuple, Optional, Callable
 import pandas as pd
@@ -65,6 +66,51 @@ class EvaluationOrchestrator:
                 "valid": False
             }
 
+    def _read_student_code(self, repo_dir: Path) -> str:
+        """Reads student code from submission.py, .py files, or .ipynb files in student repo directory."""
+        if not repo_dir.exists():
+            return "# Student repository directory does not exist"
+
+        sub_py = repo_dir / "submission.py"
+        if sub_py.exists():
+            return sub_py.read_text(encoding="utf-8")
+
+        py_files = list(repo_dir.glob("*.py"))
+        if py_files:
+            return py_files[0].read_text(encoding="utf-8")
+
+        nb_files = list(repo_dir.glob("*.ipynb"))
+        if nb_files:
+            try:
+                with open(nb_files[0], "r", encoding="utf-8") as f:
+                    nb_content = json.load(f)
+                code_cells = []
+                for cell in nb_content.get("cells", []):
+                    if cell.get("cell_type") == "code":
+                        src = cell.get("source", [])
+                        code_cells.append("".join(src) if isinstance(src, list) else src)
+                return "\n".join(code_cells)
+            except Exception:
+                pass
+
+        return "# Empty or unparseable student submission"
+
+    def _get_git_commit_count(self, repo_dir: Path) -> int:
+        """Queries git history using git rev-list --count HEAD (MOCK-07 / Suggestion 34)."""
+        if not repo_dir.exists():
+            return 0
+        try:
+            res = subprocess.run(
+                ["git", "rev-list", "--count", "HEAD"],
+                cwd=repo_dir,
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return int(res.stdout.strip())
+        except Exception:
+            return 0
+
     def process_roster(self, roster_path: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         Ingests Canvas CSV roster, evaluates student AST submissions,
@@ -72,6 +118,7 @@ class EvaluationOrchestrator:
         """
         self._log(f"Reading roster file: {roster_path}")
         roster_df = pd.read_csv(roster_path)
+        base_dir = Path(roster_path).parent
         
         canvas_rows = []
         audit_rows = []
@@ -87,34 +134,28 @@ class EvaluationOrchestrator:
             section = row.get("Section", "Section 1")
             
             repo_name = f"{self.assignment_prefix}{username}"
+            repo_dir = base_dir / repo_name
+            if not repo_dir.exists():
+                repo_dir = base_dir / str(username)
+
             self._log(f"Evaluating submission [{idx+1}/{total_students}] for {student_name} ({repo_name})...")
             
-            # Simulate AST analysis of student submission script
-            synthetic_code = f"""
-import numpy as np
-import rdkit
-from rdkit import Chem
-
-def calculate_energy(coords):
-    print("Computing quantum energy...")
-    for i in range(10):
-        val = np.sin(i) * 2.5
-    return val
-
-mol = Chem.MolFromSmiles("c1ccccc1")
-"""
-            ast_metrics = self._extract_ast_features(synthetic_code)
+            # Read real student code (MOCK-06 / Suggestion 33)
+            student_code = self._read_student_code(repo_dir)
+            ast_metrics = self._extract_ast_features(student_code)
             ast_hash = ast_metrics["ast_hash"]
             
             # Plagiarism Detection Logic
             is_plagiarized = False
-            if ast_hash in ast_hashes:
+            if ast_hash != "SYNTAX_ERROR" and ast_hash in ast_hashes:
                 is_plagiarized = True
                 ast_hashes[ast_hash].append(student_name)
-            else:
+            elif ast_hash != "SYNTAX_ERROR":
                 ast_hashes[ast_hash] = [student_name]
                 
             grade = 100.0 if ast_metrics["valid"] and not is_plagiarized else (70.0 if is_plagiarized else 0.0)
+            
+            commit_count = self._get_git_commit_count(repo_dir)
             
             canvas_rows.append({
                 "Student": student_name,
@@ -129,7 +170,7 @@ mol = Chem.MolFromSmiles("c1ccccc1")
             audit_rows.append({
                 "Student": student_name,
                 "Repo": repo_name,
-                "Commits": 8 + idx,
+                "Commits": commit_count,
                 "AST_Nodes": ast_metrics["total_nodes"],
                 "Plagiarism_Score": 0.95 if is_plagiarized else 0.05,
                 "Plagiarism_Flag": is_plagiarized,

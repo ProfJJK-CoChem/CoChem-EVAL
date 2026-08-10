@@ -32,3 +32,42 @@ def test_process_roster(tmp_path):
     assert "Grade" in canvas_df.columns
     assert "Plagiarism_Flag" in audit_df.columns
     assert len(logs) > 0
+
+def test_eval_rai_and_exporter(tmp_path):
+    from core.cochem_eval_rai import RAIScorer
+    from core.cochem_eval_export import LMSExporter
+
+    scorer = RAIScorer(default_k=5.0)
+    score1 = scorer.calculate_rai(100.0, 0)
+    score2 = scorer.calculate_rai(100.0, 5)
+    assert score1 == 100.0
+    assert score2 < 100.0
+
+    exporter = LMSExporter()
+    df = pd.DataFrame([{"Student": "Alice", "ID": "S101", "Grade": 95.0}])
+    canvas_path = exporter.export_canvas(df, tmp_path / "canvas.csv", anonymize=True)
+    assert canvas_path.exists()
+
+def test_eval_scout_and_telemetry():
+    from core.scout_heuristic import PIRecruitmentScout
+    from core.cochem_eval_telemetry import EvalTelemetryCollector
+
+    collector = EvalTelemetryCollector("Student_001")
+    collector.log_rotation(30.0)
+    collector.log_hint_request(1)
+    summary = collector.get_summary()
+    assert summary["webgl_rotations"] == 1
+
+    scout = PIRecruitmentScout()
+    rpi = scout.calculate_rpi(30.0, 20, 8)
+    assert rpi > 0
+
+def test_eval_authenticator(tmp_path):
+    from core.cochem_eval_authenticator import SubmissionAuthenticator
+    auth = SubmissionAuthenticator()
+    
+    sub_file = tmp_path / "sub.sha256"
+    sub_file.write_text('{"student_id": "U123", "dataset_hash": "abc"}')
+    res = auth.verify_submission(sub_file)
+    assert res["is_authenticated"] is True
+
