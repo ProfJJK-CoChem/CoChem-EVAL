@@ -12,7 +12,7 @@ class SubmissionAuthenticator:
     """
     Verifies cryptographic signatures on student .cochem_submission.sha256 submission files.
     """
-    def __init__(self, secret_key: str = "cochem_eval_secret_2026"):
+    def __init__(self, secret_key: str = "cochem_eval_secret_2026") -> None:
         self.secret_key = secret_key
 
     def verify_submission(self, submission_path: Union[str, Path]) -> Dict[str, Any]:
@@ -29,7 +29,7 @@ class SubmissionAuthenticator:
 
         try:
             with open(path, "r", encoding="utf-8") as f:
-                payload = json.load(f)
+                payload = json.loads(f.read())
         except Exception as e:
             return {
                 "is_authenticated": False,

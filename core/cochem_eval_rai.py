@@ -9,9 +9,9 @@ from typing import Dict, Any, List
 class RAIScorer:
     """
     Calculates Research Aptitude Index (RAI) incorporating logarithmic hint penalties:
-    Score = Score_base - k * ln(1 + N_hints)
+        Score = Score_base - k * ln(1 + N_hints)
     """
-    def __init__(self, default_k: float = 5.0, max_score: float = 100.0):
+    def __init__(self, default_k: float = 5.0, max_score: float = 100.0) -> None:
         self.default_k = default_k
         self.max_score = max_score
 

@@ -11,14 +11,14 @@ class EvalTelemetryCollector:
     """
     Logs student interactive telemetry (3D model rotations, hint requests, error recovery times).
     """
-    def __init__(self, student_id: str = "Student_001"):
+    def __init__(self, student_id: str = "Student_001") -> None:
         self.student_id = student_id
         self.events: List[Dict[str, Any]] = []
         self.error_start_time: float = 0.0
         self.total_rotations: int = 0
         self.hint_requests: int = 0
 
-    def log_rotation(self, degrees: float = 15.0):
+    def log_rotation(self, degrees: float = 15.0) -> Any:
         """Logs a 3D WebGL viewer rotation event."""
         self.total_rotations += 1
         self.events.append({
@@ -27,7 +27,7 @@ class EvalTelemetryCollector:
             "degrees": degrees
         })
 
-    def log_hint_request(self, hint_level: int = 1):
+    def log_hint_request(self, hint_level: int = 1) -> Any:
         """Logs a Socratic hint request event."""
         self.hint_requests += 1
         self.events.append({
@@ -36,7 +36,7 @@ class EvalTelemetryCollector:
             "hint_level": hint_level
         })
 
-    def log_syntax_error(self):
+    def log_syntax_error(self) -> Any:
         """Logs syntax error trigger time."""
         self.error_start_time = time.time()
         self.events.append({"type": "SYNTAX_ERROR_TRIGGERED", "timestamp": self.error_start_time})

@@ -13,7 +13,7 @@ class LMSExporter:
     Exports evaluation gradeframes into Canvas, Blackboard, and Moodle CSV formats.
     Provides optional FERPA-compliant SHA-256 anonymization.
     """
-    def __init__(self, salt: str = "cochem_ferpa_salt_2026"):
+    def __init__(self, salt: str = "cochem_ferpa_salt_2026") -> None:
         self.salt = salt
 
     def anonymize_id(self, student_id: str) -> str:

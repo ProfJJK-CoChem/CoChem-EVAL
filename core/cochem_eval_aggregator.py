@@ -10,7 +10,7 @@ import json
 import hashlib
 import subprocess
 from pathlib import Path
-from typing import Tuple, Optional, Callable
+from typing import Any, Tuple, Optional, Callable
 import pandas as pd
 
 class EvaluationOrchestrator:
@@ -28,7 +28,7 @@ class EvaluationOrchestrator:
         self.assignment_prefix = assignment_prefix
         self.ui_status_callback = ui_status_callback or (lambda msg: None)
 
-    def _log(self, message: str):
+    def _log(self, message: str) -> Any:
         """Sends status messages to the UI callback."""
         self.ui_status_callback(message)
 
@@ -83,7 +83,7 @@ class EvaluationOrchestrator:
         if nb_files:
             try:
                 with open(nb_files[0], "r", encoding="utf-8") as f:
-                    nb_content = json.load(f)
+                    nb_content = json.loads(f.read())
                 code_cells = []
                 for cell in nb_content.get("cells", []):
                     if cell.get("cell_type") == "code":
@@ -100,12 +100,10 @@ class EvaluationOrchestrator:
         if not repo_dir.exists():
             return 0
         try:
-            res = subprocess.run(
-                ["git", "rev-list", "--count", "HEAD"],
+            res = subprocess.run(["git", "rev-list", "--count", "HEAD"], check=True, timeout=300,
                 cwd=repo_dir,
                 capture_output=True,
-                text=True,
-                check=True
+                text=True
             )
             return int(res.stdout.strip())
         except Exception:

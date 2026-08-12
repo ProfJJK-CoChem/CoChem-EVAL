@@ -1,21 +1,22 @@
+from typing import Any, Dict, List, Optional
 import os
 import pytest
 import pandas as pd
 from pathlib import Path
 from core.cochem_eval_aggregator import EvaluationOrchestrator
 
-def test_evaluation_orchestrator_init():
+def test_evaluation_orchestrator_init() -> None:
     orchestrator = EvaluationOrchestrator(github_token="fake_token", org_name="TestOrg")
     assert orchestrator.org_name == "TestOrg"
 
-def test_ast_feature_extraction():
+def test_ast_feature_extraction() -> None:
     orchestrator = EvaluationOrchestrator()
     code = "def foo():\n    return 42\n"
     res = orchestrator._extract_ast_features(code)
     assert res["valid"] is True
     assert res["functions"] == 1
 
-def test_process_roster(tmp_path):
+def test_process_roster(tmp_path) -> None:
     roster_file = tmp_path / "test_roster.csv"
     df = pd.DataFrame([
         {"Student": "Alice Smith", "ID": "101", "SIS User ID": "101", "SIS Login ID": "asmith", "Section": "A"},
@@ -33,7 +34,7 @@ def test_process_roster(tmp_path):
     assert "Plagiarism_Flag" in audit_df.columns
     assert len(logs) > 0
 
-def test_eval_rai_and_exporter(tmp_path):
+def test_eval_rai_and_exporter(tmp_path) -> None:
     from core.cochem_eval_rai import RAIScorer
     from core.cochem_eval_export import LMSExporter
 
@@ -48,7 +49,7 @@ def test_eval_rai_and_exporter(tmp_path):
     canvas_path = exporter.export_canvas(df, tmp_path / "canvas.csv", anonymize=True)
     assert canvas_path.exists()
 
-def test_eval_scout_and_telemetry():
+def test_eval_scout_and_telemetry() -> None:
     from core.scout_heuristic import PIRecruitmentScout
     from core.cochem_eval_telemetry import EvalTelemetryCollector
 
@@ -62,7 +63,7 @@ def test_eval_scout_and_telemetry():
     rpi = scout.calculate_rpi(30.0, 20, 8)
     assert rpi > 0
 
-def test_eval_authenticator(tmp_path):
+def test_eval_authenticator(tmp_path) -> None:
     from core.cochem_eval_authenticator import SubmissionAuthenticator
     auth = SubmissionAuthenticator()
     
@@ -70,4 +71,3 @@ def test_eval_authenticator(tmp_path):
     sub_file.write_text('{"student_id": "U123", "dataset_hash": "abc"}')
     res = auth.verify_submission(sub_file)
     assert res["is_authenticated"] is True
-

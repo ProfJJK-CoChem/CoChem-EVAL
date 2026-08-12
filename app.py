@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Optional
 import streamlit as st
 import pandas as pd
 import os
@@ -9,7 +10,7 @@ try:
 except ImportError:
     EvaluationOrchestrator = None
 
-def highlight_plagiarism(row):
+def highlight_plagiarism(row) -> Any:
     """
     Pandas styling function to flag anomalous submissions.
     Safely checks for the column before applying CSS.
@@ -19,7 +20,7 @@ def highlight_plagiarism(row):
     color = 'background-color: #ffcccc' if is_flagged == True else ''
     return [color] * len(row)
 
-def main():
+def main() -> Any:
     st.set_page_config(
         page_title="CoChem-EVAL | Automated Grading",
         page_icon="🧪",

@@ -12,7 +12,7 @@ class PIRecruitmentScout:
     Evaluates students across problem-solving telemetry metrics to compute a Research Potential Index (RPI)
     and generate a PI Draft Board table for undergraduate research recruitment.
     """
-    def __init__(self, w_recovery: float = 0.30, w_telemetry: float = 0.30, w_persistence: float = 0.40):
+    def __init__(self, w_recovery: float = 0.30, w_telemetry: float = 0.30, w_persistence: float = 0.40) -> None:
         self.w_recovery = w_recovery
         self.w_telemetry = w_telemetry
         self.w_persistence = w_persistence
@@ -20,7 +20,7 @@ class PIRecruitmentScout:
     def calculate_rpi(self, error_recovery_s: float, webgl_rotations: int, clean_attempts: int) -> float:
         """
         Calculates 0-100 RPI score:
-        - Recovery score: faster recovery from syntax/logic errors yields higher score (scaled up to 300s).
+            - Recovery score: faster recovery from syntax/logic errors yields higher score (scaled up to 300s).
         - Telemetry score: 3D WebGL rotation interactions show engagement (scaled up to 50 rotations).
         - Persistence score: ratio of clean attempts.
         """
