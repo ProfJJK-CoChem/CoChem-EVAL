@@ -9,12 +9,18 @@ def test_evaluation_orchestrator_init() -> None:
     orchestrator = EvaluationOrchestrator(github_token="fake_token", org_name="TestOrg")
     assert orchestrator.org_name == "TestOrg"
 
-def test_ast_feature_extraction() -> None:
+@pytest.mark.parametrize("code, expected_funcs, expected_valid", [
+    ("def foo():\n    return 42\n", 1, True),
+    ("for i in range(10):\n    print(i)\n", 0, True),
+    ("import os\nclass A:\n    pass\n", 0, True),
+    ("def foo():\n    return 42\n\ndef bar():\n    pass\n", 2, True),
+    ("def foo(\n", 0, False) # Syntax error
+])
+def test_ast_feature_extraction(code: str, expected_funcs: int, expected_valid: bool) -> None:
     orchestrator = EvaluationOrchestrator()
-    code = "def foo():\n    return 42\n"
     res = orchestrator._extract_ast_features(code)
-    assert res["valid"] is True
-    assert res["functions"] == 1
+    assert res.valid is expected_valid
+    assert res.functions == expected_funcs
 
 def test_process_roster(tmp_path) -> None:
     roster_file = tmp_path / "test_roster.csv"
@@ -57,17 +63,19 @@ def test_eval_scout_and_telemetry() -> None:
     collector.log_rotation(30.0)
     collector.log_hint_request(1)
     summary = collector.get_summary()
-    assert summary["webgl_rotations"] == 1
+    assert summary.webgl_rotations == 1
 
     scout = PIRecruitmentScout()
     rpi = scout.calculate_rpi(30.0, 20, 8)
     assert rpi > 0
 
-def test_eval_authenticator(tmp_path) -> None:
+def test_eval_authenticator(tmp_path: Path) -> None:
     from core.cochem_eval_authenticator import SubmissionAuthenticator
+    os.environ["COCHEM_EVAL_SECRET"] = "test_secret"
     auth = SubmissionAuthenticator()
     
     sub_file = tmp_path / "sub.sha256"
     sub_file.write_text('{"student_id": "U123", "dataset_hash": "abc"}')
     res = auth.verify_submission(sub_file)
-    assert res["is_authenticated"] is True
+    assert res.is_authenticated is True
+    assert res.student_id == "U123"

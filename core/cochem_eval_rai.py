@@ -4,7 +4,18 @@ Implements Socratic logarithmic hint penalty scoring for student evaluation.
 """
 
 import math
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
+from pydantic import BaseModel
+
+class RAIResult(BaseModel):
+    student_id: str
+    base_score: float
+    hint_count: int
+    hint_penalty: float
+    rai_score: float
+    ast_nodes: int
+    commit_count: int
+    aptitude_tier: str
 
 class RAIScorer:
     """
@@ -32,20 +43,20 @@ class RAIScorer:
         hint_count: int,
         ast_nodes: int = 0,
         commit_count: int = 0
-    ) -> Dict[str, Any]:
+    ) -> RAIResult:
         """
-        Generates full RAI evaluation dictionary including sub-metrics.
+        Generates full RAI evaluation model including sub-metrics.
         """
         rai_score = self.calculate_rai(base_score, hint_count)
         hint_penalty = round(base_score - rai_score, 2)
 
-        return {
-            "student_id": student_id,
-            "base_score": base_score,
-            "hint_count": hint_count,
-            "hint_penalty": hint_penalty,
-            "rai_score": rai_score,
-            "ast_nodes": ast_nodes,
-            "commit_count": commit_count,
-            "aptitude_tier": "EXCELLENT" if rai_score >= 90 else ("PROFICIENT" if rai_score >= 75 else "DEVELOPING")
-        }
+        return RAIResult(
+            student_id=student_id,
+            base_score=base_score,
+            hint_count=hint_count,
+            hint_penalty=hint_penalty,
+            rai_score=rai_score,
+            ast_nodes=ast_nodes,
+            commit_count=commit_count,
+            aptitude_tier="EXCELLENT" if rai_score >= 90 else ("PROFICIENT" if rai_score >= 75 else "DEVELOPING")
+        )

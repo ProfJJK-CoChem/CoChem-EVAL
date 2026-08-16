@@ -5,7 +5,8 @@ Exports student grades to Canvas, Blackboard, and Moodle CSV schemas with FERPA 
 
 import hashlib
 from pathlib import Path
-from typing import Dict, Any, List, Union
+from typing import Dict, Any, List, Union, Optional
+import os
 import pandas as pd
 
 class LMSExporter:
@@ -13,8 +14,8 @@ class LMSExporter:
     Exports evaluation gradeframes into Canvas, Blackboard, and Moodle CSV formats.
     Provides optional FERPA-compliant SHA-256 anonymization.
     """
-    def __init__(self, salt: str = "cochem_ferpa_salt_2026") -> None:
-        self.salt = salt
+    def __init__(self, salt: Optional[str] = None) -> None:
+        self.salt = salt or os.environ.get("COCHEM_FERPA_SALT", "[MISSING DATA]")
 
     def anonymize_id(self, student_id: str) -> str:
         """Computes FERPA-compliant SHA-256 anonymized ID."""
