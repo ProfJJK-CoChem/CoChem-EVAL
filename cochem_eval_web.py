@@ -11,13 +11,18 @@ st.set_page_config(page_title="CoChem-EVAL - Native Pipeline UI", layout="wide")
 
 def kill_zombie_processes() -> None:
     target_procs = ['orca', 'xtb', 'mpi', 'crest']
-    for proc in psutil.process_iter(['name']):
+    try:
+        children = psutil.Process(os.getpid()).children(recursive=True)
+    except Exception:
+        return
+    for proc in children:
         try:
-            name = proc.info['name'].lower()
-            if any(target in name for target in target_procs):
+            info = proc.as_dict(attrs=['name'])
+            name = info.get('name')
+            if name and any(target in name.lower() for target in target_procs):
                 proc.terminate()
         except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            raise NotImplementedError("Implementation pending")
+            pass
 atexit.register(kill_zombie_processes)
 
 st.title("🔬 CoChem-EVAL Control Panel")
@@ -36,10 +41,12 @@ if st.button("🚀 Execute Default Pipeline"):
         tests_dir = module_dir / "tests"
         
         env = os.environ.copy()
-        env["COCHEM_TARGET_H5"] = os.path.join(os.getcwd(), "landscape.h5")
+        artifact_dir = os.environ.get('COCHEM_ARTIFACT_DIR', str(Path.home() / 'cochem_artifacts'))
+        env["COCHEM_ARTIFACT_DIR"] = artifact_dir
+        env["COCHEM_TARGET_H5"] = os.path.join(artifact_dir, "landscape.h5")
         
         try:
-            cmd = [sys.executable, "-m", "pytest", str(tests_dir), "-v"]
+            cmd = [sys.executable, str(module_dir / "cochem_educator_telemetry.py")]
             result = subprocess.run(
                 cmd, 
                 capture_output=True, 

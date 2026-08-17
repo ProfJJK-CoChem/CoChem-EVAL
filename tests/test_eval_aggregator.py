@@ -6,8 +6,9 @@ from pathlib import Path
 from core.cochem_eval_aggregator import EvaluationOrchestrator
 
 def test_evaluation_orchestrator_init() -> None:
-    orchestrator = EvaluationOrchestrator(github_token="fake_token", org_name="TestOrg")
-    assert orchestrator.org_name == "TestOrg"
+    test_org = os.environ.get("GITHUB_ORG", "CoChem-University")
+    orchestrator = EvaluationOrchestrator(github_token=os.environ.get("GITHUB_TOKEN"), org_name=test_org)
+    assert orchestrator.org_name == test_org
 
 @pytest.mark.parametrize("code, expected_funcs, expected_valid", [
     ("def foo():\n    return 42\n", 1, True),
@@ -23,12 +24,20 @@ def test_ast_feature_extraction(code: str, expected_funcs: int, expected_valid: 
     assert res.functions == expected_funcs
 
 def test_process_roster(tmp_path) -> None:
-    roster_file = tmp_path / "test_roster.csv"
+    roster_file = tmp_path / "roster_actual.csv"
     df = pd.DataFrame([
-        {"Student": "Alice Smith", "ID": "101", "SIS User ID": "101", "SIS Login ID": "asmith", "Section": "A"},
-        {"Student": "Bob Jones", "ID": "102", "SIS User ID": "102", "SIS Login ID": "bjones", "Section": "A"}
+        {"Student": "Student Alpha", "ID": "101", "SIS User ID": "101", "SIS Login ID": "student_alpha", "Section": "A"},
+        {"Student": "Student Beta", "ID": "102", "SIS User ID": "102", "SIS Login ID": "student_beta", "Section": "A"}
     ])
     df.to_csv(roster_file, index=False)
+    
+    repo_a = tmp_path / "HW1-IntroChem-student_alpha"
+    repo_a.mkdir()
+    (repo_a / "submission.py").write_text("def my_func():\n    return 1\n", encoding="utf-8")
+    
+    repo_b = tmp_path / "HW1-IntroChem-student_beta"
+    repo_b.mkdir()
+    (repo_b / "submission.py").write_text("def my_func():\n    return 2\n", encoding="utf-8")
     
     logs = []
     orchestrator = EvaluationOrchestrator(ui_status_callback=lambda msg: logs.append(msg))
@@ -51,8 +60,8 @@ def test_eval_rai_and_exporter(tmp_path) -> None:
     assert score2 < 100.0
 
     exporter = LMSExporter()
-    df = pd.DataFrame([{"Student": "Alice", "ID": "S101", "Grade": 95.0}])
-    canvas_path = exporter.export_canvas(df, tmp_path / "canvas.csv", anonymize=True)
+    df = pd.DataFrame([{"Student": "Student Alpha", "ID": "S101", "Grade": 95.0}])
+    canvas_path = exporter.export_canvas(df, tmp_path / "canvas_actual.csv", anonymize=True)
     assert canvas_path.exists()
 
 def test_eval_scout_and_telemetry() -> None:
@@ -71,7 +80,7 @@ def test_eval_scout_and_telemetry() -> None:
 
 def test_eval_authenticator(tmp_path: Path) -> None:
     from core.cochem_eval_authenticator import SubmissionAuthenticator
-    os.environ["COCHEM_EVAL_SECRET"] = "test_secret"
+    os.environ["COCHEM_EVAL_SECRET"] = os.environ.get("COCHEM_EVAL_SECRET", "default_secret_key_01")
     auth = SubmissionAuthenticator()
     
     sub_file = tmp_path / "sub.sha256"
